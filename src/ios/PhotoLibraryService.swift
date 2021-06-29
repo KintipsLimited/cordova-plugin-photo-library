@@ -493,7 +493,7 @@ final class PhotoLibraryService {
         }
 
         // Permission was manually denied by user, open settings screen
-        let settingsUrl = URL(string: UIApplication.openSettingsURLString)
+        let settingsUrl = URL(string: UIApplicationOpenSettingsURLString)
         if let url = settingsUrl {
             UIApplication.shared.openURL(url)
             // TODO: run callback only when return ?
@@ -520,7 +520,7 @@ final class PhotoLibraryService {
 
         let assetsLibrary = ALAssetsLibrary()
 
-        func saveImage(_ photoAlbum: PHAssetCollection) {
+        func saveImage() {
             assetsLibrary.writeImageData(toSavedPhotosAlbum: sourceData, metadata: nil) { (assetUrl: URL?, error: Error?) in
 
                 if error != nil {
@@ -533,40 +533,20 @@ final class PhotoLibraryService {
                     return
                 }
 
-                self.putMediaToAlbum(assetsLibrary, url: assetUrl, album: album, completion: { (error) in
-                    if error != nil {
-                        completion(nil, error)
-                    } else {
-                        let fetchResult = PHAsset.fetchAssets(withALAssetURLs: [assetUrl], options: nil)
-                        var libraryItem: NSDictionary? = nil
-                        if fetchResult.count == 1 {
-                            let asset = fetchResult.firstObject
-                            if let asset = asset {
-                                libraryItem = self.assetToLibraryItem(asset: asset, useOriginalFileNames: false, includeAlbumData: true)
-                            }
-                        }
-                        completion(libraryItem, nil)
+                let fetchResult = PHAsset.fetchAssets(withALAssetURLs: [assetUrl], options: nil)
+                var libraryItem: NSDictionary? = nil
+                if fetchResult.count == 1 {
+                    let asset = fetchResult.firstObject
+                    if let asset = asset {
+                        libraryItem = self.assetToLibraryItem(asset: asset, useOriginalFileNames: false, includeAlbumData: true)
                     }
-                })
+                }
+                completion(libraryItem, nil)
 
             }
         }
-
-        if let photoAlbum = PhotoLibraryService.getPhotoAlbum(album) {
-            saveImage(photoAlbum)
-            return
-        }
-
-        PhotoLibraryService.createPhotoAlbum(album) { (photoAlbum: PHAssetCollection?, error: String?) in
-
-            guard let photoAlbum = photoAlbum else {
-                completion(nil, error)
-                return
-            }
-
-            saveImage(photoAlbum)
-
-        }
+        saveImage()
+        return
 
     }
 
@@ -609,8 +589,8 @@ final class PhotoLibraryService {
                 }
 
                 self.putMediaToAlbum(assetsLibrary, url: assetUrl, album: album, completion: { (error) in
-  
-                    
+
+
                     if error != nil {
                         completion(nil, error)
                     } else {
@@ -728,10 +708,10 @@ final class PhotoLibraryService {
         var mimeType: String?
 
         if (imageHasAlpha(image)){
-            data = image.pngData()
+            data = UIImagePNGRepresentation(image)
             mimeType = data != nil ? "image/png" : nil
         } else {
-            data = image.jpegData(compressionQuality: CGFloat(quality))
+            data = UIImageJPEGRepresentation(image, CGFloat(quality))
             mimeType = data != nil ? "image/jpeg" : nil
         }
 
